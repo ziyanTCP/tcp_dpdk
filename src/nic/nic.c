@@ -50,7 +50,7 @@ void send_p(struct tcp *_tcp, struct connection *connection) {
 
     // Actually send the packet
     printf("send packet\n");
-    DumpHex(rte_pktmbuf_mtod(pkt, char *), pkt->data_len);
+//    DumpHex(rte_pktmbuf_mtod(pkt, char *), pkt->data_len);
     pkts_burst[0] = pkt;
     const uint16_t nb_tx = rte_eth_tx_burst(0, 0, pkts_burst, 1);
     rte_mbuf_raw_free(pkt);

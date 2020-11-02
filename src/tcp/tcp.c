@@ -9,6 +9,8 @@
 #include "tcp/tcp.h"
 #include "rte_jhash.h"
 #include "tcp/tcp_syn_recv.h"
+#include "tcp/tcp_establish.h"
+#include "tcp/tcp_last_ack.h"
 
 _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
     uint16_t port;
@@ -46,7 +48,7 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
                 if (rteEtherHdr->ether_type == rte_be_to_cpu_16(RTE_ETHER_TYPE_IPV4)) {
                     rteIpv4Hdr = rte_pktmbuf_mtod_offset(bufs[i], struct ipv4_hdr *, sizeof(struct rte_ether_hdr));
                     if (rteIpv4Hdr->next_proto_id == IPPROTO_TCP) {
-                        DumpHex(rte_pktmbuf_mtod(bufs[i], char *), bufs[i]->pkt_len);
+//                        DumpHex(rte_pktmbuf_mtod(bufs[i], char *), bufs[i]->pkt_len);
                         tcpHdr = rte_pktmbuf_mtod_offset(bufs[i], struct rte_tcp_hdr *,
                                                          sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr));
                         void *data = rte_pktmbuf_mtod_offset(bufs[i], void *,
@@ -75,6 +77,12 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
                             switch (connection->tcpState) {
                                 case TCP_SYN_RECV:
                                     handle_tcp_syn_recv(_tcp, connection, q, tcpHdr, rteIpv4Hdr, data, size);
+                                    break;
+                                case TCP_ESTABLISHED:
+                                    handle_tcp_establish(_tcp, connection, q, tcpHdr, rteIpv4Hdr, data, size);
+                                    break;
+                                case TCP_LAST_ACK:
+                                    handle_tcp_last_ack(_tcp, connection, q, tcpHdr, rteIpv4Hdr, data, size);
                                     break;
                                 default:
                                     break;
@@ -145,6 +153,10 @@ void tcp_tx_packets(struct tcp *_tcp, struct connection *_connection) {
     _connection->rteTcpHdr.cksum = rte_ipv4_udptcp_cksum(&_connection->rteIpv4Hdr, &_connection->rteTcpHdr);
 
     send_p(_tcp, _connection);
+
+    if ((_connection->rteTcpHdr.tcp_flags & RTE_TCP_SYN_FLAG) != 0) {
+        _connection->sendSequenceSpace.nxt = _connection->sendSequenceSpace.nxt + 1;
+    }
 }
 
 bool segment_check(struct connection *_connection, uint32_t slen, uint32_t seqn) {
@@ -171,6 +183,7 @@ bool wrapping_lt(uint32_t lhs, uint32_t rhs) {
     return (lhs - rhs) > (1 << 31);
 }
 
+//strictly less than
 bool is_between_wrapped(uint32_t start, uint32_t x, uint32_t end) {
     return wrapping_lt(start, x) && wrapping_lt(x, end);
 }
