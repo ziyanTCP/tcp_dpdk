@@ -6,14 +6,15 @@
 #include "tcp/tcp_listen.h"
 #include "rte_tcp.h"
 
-void handle_tcp_listen(struct tcp *_tcp, struct connection *_connection, struct quad q, struct rte_tcp_hdr *tcpHdr,
+struct connection * handle_tcp_listen(struct tcp *_tcp, struct quad q, struct rte_tcp_hdr *tcpHdr,
                        struct rte_ipv4_hdr *ipv4Hdr, void *data, int size) {
 
     if (tcpHdr->tcp_flags != RTE_TCP_SYN_FLAG) {
-        return;
+        return NULL;
     }
     uint32_t iss = 0;
     uint16_t wnd = 64240;
+    struct connection *_connection;
     _connection = rte_malloc(NULL, sizeof(struct connection), 0);
     _connection->q = q;
     _connection->tcpState = TCP_SYN_RECV;
@@ -38,4 +39,5 @@ void handle_tcp_listen(struct tcp *_tcp, struct connection *_connection, struct 
     _connection->rteTcpHdr.tcp_flags = RTE_TCP_SYN_FLAG | RTE_TCP_ACK_FLAG;
 
     tcp_tx_packets(_tcp, _connection);
+    return _connection;
 }

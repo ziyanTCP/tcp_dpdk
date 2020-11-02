@@ -69,3 +69,7 @@ rte_le64_t string_to_mac(char *s) {
             (uint64_t)(a[4]) << 8 |
             (uint64_t)(a[5]);
 }
+
+uint32_t wrapping_add(uint32_t add1, uint32_t add2){
+       return (add1+add2);
+}

@@ -21,4 +21,6 @@ rte_le32_t string_to_ip(char *s);
 // convert six colon separated hex bytes string to uint64_t Ethernet MAC address
 rte_le64_t string_to_mac(char *s);
 
+uint32_t wrapping_add(uint32_t add1, uint32_t add2);
+
 #endif //TCP_UTILITY_H
