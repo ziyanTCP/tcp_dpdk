@@ -35,6 +35,7 @@ void DumpHex(const void *data, size_t size) {
 }
 
 // convert a quad-dot IP string to uint32_t IP address
+// the result is in cpu order
 rte_le32_t string_to_ip(char *s) {
     unsigned char a[4];
     int rc = sscanf(s, "%hhd.%hhd.%hhd.%hhd",a+0,a+1,a+2,a+3);

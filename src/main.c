@@ -7,13 +7,20 @@
 #include <rte_cycles.h>
 #include <rte_lcore.h>
 #include <rte_mbuf.h>
-
+#include <utility/utility.h>
+#include "rte_byteorder.h"
 #include "config/config.h"
 #include "tcp/tcp.h"
+#include <unistd.h>
+
+#define SERVER 0
+#define CLIENT 1
+
+struct tcp *_tcp;
 
 _Noreturn void rx_packets(void);
 
-void exit_stats(int);
+void exit_stats(int sig);
 
 uint64_t packet_count = 0;
 
@@ -98,9 +105,16 @@ port_init(uint16_t port, struct rte_mempool *mbuf_pool) {
 void exit_stats(int sig) {
     printf("Caught signal %d\n", sig);
     printf("Total received packets: %lu\n", packet_count);
+    printf("Total connections: %lu\n", _tcp->stats.connection_count);
+    printf("Connections first: %lu\n", _tcp->stats.first_connection);
+    printf("Connections last: %lu\n", _tcp->stats.last_connection);
+    printf("Connections per second: %f\n", (double) (_tcp->stats.connection_count) /
+                                         ((double) (_tcp->stats.last_connection - _tcp->stats.first_connection) /
+                                          (CLOCKS_PER_SEC)));
     exit(0);
 }
 
+// Q1: how much time to send and recieve?
 int main(int argc, char *argv[]) {
     struct rte_mempool *mbuf_pool;
     unsigned nb_ports;
@@ -128,9 +142,14 @@ int main(int argc, char *argv[]) {
             rte_exit(EXIT_FAILURE, "Cannot init port %"PRIu16 "\n",
                      portid);
 
+    _tcp = initialize_tcp(mbuf_pool);
     signal(SIGINT, exit_stats);
-    struct tcp *_tcp = initialize_tcp(mbuf_pool);
-    tcp_rx_packets(_tcp);
+    rte_be32_t dip = rte_cpu_to_be_32(string_to_ip("192.168.11.111"));
+    rte_be32_t dport = rte_cpu_to_be_16(2000); //
+    rte_be32_t sport = rte_cpu_to_be_16(8000); // the port of this program
+    sleep(3);
 
+    active_connect(_tcp, dip, dport, sport);
+    tcp_rx_packets(_tcp);
     return 0;
 }

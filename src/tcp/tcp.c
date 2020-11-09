@@ -11,6 +11,9 @@
 #include "tcp/tcp_syn_recv.h"
 #include "tcp/tcp_establish.h"
 #include "tcp/tcp_last_ack.h"
+#include "tcp/tcp_syn_sent.h"
+#include "tcp/tcp_fin_wait1.h"
+#include "tcp/tcp_fin_wait2.h"
 
 _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
     uint16_t port;
@@ -47,6 +50,12 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
                 }
                 if (rteEtherHdr->ether_type == rte_be_to_cpu_16(RTE_ETHER_TYPE_IPV4)) {
                     rteIpv4Hdr = rte_pktmbuf_mtod_offset(bufs[i], struct ipv4_hdr *, sizeof(struct rte_ether_hdr));
+                    if (_tcp->nic->ip != rteIpv4Hdr->dst_addr) {
+//                        DumpHex(rte_pktmbuf_mtod(bufs[i], char *), bufs[i]->pkt_len);
+//                        printf("drop the ip packet");
+                        continue;
+                    }
+
                     if (rteIpv4Hdr->next_proto_id == IPPROTO_TCP) {
 //                        DumpHex(rte_pktmbuf_mtod(bufs[i], char *), bufs[i]->pkt_len);
                         tcpHdr = rte_pktmbuf_mtod_offset(bufs[i], struct rte_tcp_hdr *,
@@ -73,7 +82,7 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
                                 rte_hash_add_key_data(_tcp->rteHash, &q, (void *) connection);
                             }
                         } else {
-                            printf("found!\n");
+//                            printf("found!\n");
                             switch (connection->tcpState) {
                                 case TCP_SYN_RECV:
                                     handle_tcp_syn_recv(_tcp, connection, q, tcpHdr, rteIpv4Hdr, data, size);
@@ -83,6 +92,18 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
                                     break;
                                 case TCP_LAST_ACK:
                                     handle_tcp_last_ack(_tcp, connection, q, tcpHdr, rteIpv4Hdr, data, size);
+                                    // rte_hash_
+                                    rte_free(connection);
+                                    rte_hash_del_key(_tcp->rteHash, &q);
+                                    break;
+                                case TCP_SYN_SENT:
+                                    handle_tcp_syn_sent(_tcp, connection, q, tcpHdr, rteIpv4Hdr, data, size);
+                                    break;
+                                case TCP_FIN_WAIT1:
+                                    handle_tcp_fin_wait1(_tcp, connection, q, tcpHdr, rteIpv4Hdr, data, size);
+                                    break;
+                                case TCP_FIN_WAIT2:
+                                    handle_tcp_fin_wait2(_tcp, connection, q, tcpHdr, rteIpv4Hdr, data, size);
                                     break;
                                 default:
                                     break;
@@ -99,18 +120,22 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
 
 struct tcp *initialize_tcp(struct rte_mempool *mempool) {
     struct tcp *_tcp = rte_malloc(NULL, sizeof(struct tcp), 0);
+    _tcp->stats.first_connection = 0;
+    _tcp->stats.first_connection = 0;
+    _tcp->stats.connection_count = 0;
 
     _tcp->mbuf_pool = mempool;
     // https://doc.dpdk.org/api/examples_2l3fwd-power_2main_8c-example.html#_a101
 
     struct rte_hash_parameters hash_params = {
             .name = NULL,
-            .entries = 1024, // number of entries
+            .entries = 4084, // number of entries
             .key_len = sizeof(struct quad),
             .hash_func = rte_jhash,
             .hash_func_init_val = 0,
     };
 
+    // number of connections
     char s[64];
     /* create hash */
     snprintf(s, sizeof(s), "hash", 0);
@@ -121,13 +146,14 @@ struct tcp *initialize_tcp(struct rte_mempool *mempool) {
         rte_exit(EXIT_FAILURE, "Unable to create the hash");
 
     struct nic *_nic = rte_malloc(NULL, sizeof(struct nic), 0);
-    _nic->ip = string_to_ip("192.168.11.11");
+    _nic->ip = rte_cpu_to_be_32(string_to_ip("192.168.11.11"));
     char mac[] = "24:4b:fe:5b:3e:6e";
     struct rte_ether_addr eth;
     rte_ether_unformat_addr(mac, &eth); //fake a mac address
     _nic->mac = eth;
     char destination_mac[] = "24:4b:fe:5b:3e:5e";
     rte_ether_unformat_addr(destination_mac, &eth); //fake a mac address
+
     _nic->dst_mac = eth;
     _tcp->nic = _nic;
     return _tcp;
@@ -156,6 +182,12 @@ void tcp_tx_packets(struct tcp *_tcp, struct connection *_connection) {
 
     if ((_connection->rteTcpHdr.tcp_flags & RTE_TCP_SYN_FLAG) != 0) {
         _connection->sendSequenceSpace.nxt = _connection->sendSequenceSpace.nxt + 1;
+        _connection->rteTcpHdr.tcp_flags = _connection->rteTcpHdr.tcp_flags & ~RTE_TCP_SYN_FLAG;
+    }
+
+    if ((_connection->rteTcpHdr.tcp_flags & RTE_TCP_FIN_FLAG) != 0) {
+        _connection->sendSequenceSpace.nxt = _connection->sendSequenceSpace.nxt + 1;
+        _connection->rteTcpHdr.tcp_flags = _connection->rteTcpHdr.tcp_flags & ~RTE_TCP_FIN_FLAG;
     }
 }
 
@@ -186,4 +218,51 @@ bool wrapping_lt(uint32_t lhs, uint32_t rhs) {
 //strictly less than
 bool is_between_wrapped(uint32_t start, uint32_t x, uint32_t end) {
     return wrapping_lt(start, x) && wrapping_lt(x, end);
+}
+
+void active_connect(struct tcp *_tcp, rte_be32_t dip, rte_be16_t dport, rte_be16_t sport) {
+    struct quad q;
+    q.sport = dport;
+    q.sip = dip;
+    q.dport = sport; // hard-coded for now
+    q.dip = _tcp->nic->ip;
+
+    struct connection *_connection;
+    int result = rte_hash_lookup_data(_tcp->rteHash, &q, (void **) &_connection);
+    if (result == -ENOENT) {
+
+        uint32_t iss = 0;
+        uint16_t wnd = 64240;
+
+        _connection = rte_malloc(NULL, sizeof(struct connection), 0);
+        _connection->q = q;
+
+        _connection->sendSequenceSpace.una = iss;
+        _connection->sendSequenceSpace.nxt = iss;
+        _connection->sendSequenceSpace.wnd = wnd;
+        _connection->sendSequenceSpace.up = false;
+        _connection->sendSequenceSpace.wl1 = 0;
+        _connection->sendSequenceSpace.wl2 = 0;
+        _connection->sendSequenceSpace.iss = iss;
+
+        _connection->receiveSequenceSpace.irs = iss;
+        _connection->receiveSequenceSpace.nxt = iss;
+        _connection->receiveSequenceSpace.wnd = wnd;
+        _connection->receiveSequenceSpace.up = false;
+        _connection->rteIpv4Hdr.src_addr = q.dip;
+        _connection->rteIpv4Hdr.dst_addr = q.sip;
+        _connection->rteTcpHdr.src_port = q.dport;
+        _connection->rteTcpHdr.dst_port = q.sport;
+        _connection->rteTcpHdr.sent_seq = 0;
+        _connection->rteTcpHdr.rx_win = rte_cpu_to_be_16(wnd);
+        _connection->rteTcpHdr.tcp_flags = RTE_TCP_SYN_FLAG;
+        _connection->tcpState = TCP_SYN_SENT;
+
+        tcp_tx_packets(_tcp, _connection);
+        rte_hash_add_key_data(_tcp->rteHash, &q, (void *) _connection);
+        printf("connection added");
+    } else {
+        // altrady has that connection
+        return;
+    }
 }

@@ -8,6 +8,6 @@ void handle_tcp_last_ack(struct tcp *_tcp, struct connection *_connection, struc
                          struct rte_ipv4_hdr *ipv4Hdr, void *data, int size) {
     uint32_t seq = rte_be_to_cpu_32(tcpHdr->sent_seq);
     uint32_t ackn = rte_be_to_cpu_32(tcpHdr->recv_ack);
-    printf("connection terminated!\n");
+//    printf("connection terminated!\n");
     _connection->tcpState = TCP_CLOSE;
 }
