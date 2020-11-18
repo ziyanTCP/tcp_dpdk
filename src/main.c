@@ -144,12 +144,12 @@ int main(int argc, char *argv[]) {
 
     _tcp = initialize_tcp(mbuf_pool);
     signal(SIGINT, exit_stats);
-    rte_be32_t dip = rte_cpu_to_be_32(string_to_ip("192.168.11.111"));
-    rte_be32_t dport = rte_cpu_to_be_16(2000); //
-    rte_be32_t sport = rte_cpu_to_be_16(8000); // the port of this program
-    sleep(3);
-
-    active_connect(_tcp, dip, dport, sport);
+//    rte_be32_t dip = rte_cpu_to_be_32(string_to_ip("192.168.11.12"));
+//    rte_be32_t dport = rte_cpu_to_be_16(2000); //
+//    rte_be32_t sport = rte_cpu_to_be_16(8000); // the port of this program
+//    sleep(3);
+//
+//    active_connect(_tcp, dip, dport, sport);
     tcp_rx_packets(_tcp);
     return 0;
 }

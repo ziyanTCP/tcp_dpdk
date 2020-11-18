@@ -62,7 +62,8 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
                                                          sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr));
                         void *data = rte_pktmbuf_mtod_offset(bufs[i], void *,
                                                              sizeof(struct rte_ether_hdr) +
-                                                             sizeof(struct rte_ipv4_hdr)) + sizeof(struct rte_tcp_hdr);
+                                                             sizeof(struct rte_ipv4_hdr)) +
+                                     (((tcpHdr->data_off) >> 4) << 2);
 //                        printf("total length is %u\n", rte_be_to_cpu_16(rteIpv4Hdr->total_length));
 //                        printf("size of ipv4 hdr is %lu\n", sizeof(struct rte_ipv4_hdr));
 //                        printf("size of ipv4 hdr is %u\n", (tcpHdr->data_off)>>4 *4);
@@ -151,6 +152,7 @@ struct tcp *initialize_tcp(struct rte_mempool *mempool) {
     struct rte_ether_addr eth;
     rte_ether_unformat_addr(mac, &eth); //fake a mac address
     _nic->mac = eth;
+    // char destination_mac[] = "24:4d:54:25:51:3e";
     char destination_mac[] = "24:4b:fe:5b:3e:5e";
     rte_ether_unformat_addr(destination_mac, &eth); //fake a mac address
 
@@ -159,11 +161,11 @@ struct tcp *initialize_tcp(struct rte_mempool *mempool) {
     return _tcp;
 }
 
-void tcp_tx_packets(struct tcp *_tcp, struct connection *_connection) {
+void tcp_tx_packets(struct tcp *_tcp, struct connection *_connection, void *data, size_t data_size) {
     _connection->rteTcpHdr.sent_seq = rte_cpu_to_be_32(_connection->sendSequenceSpace.nxt);
     _connection->rteTcpHdr.recv_ack = rte_cpu_to_be_32(_connection->receiveSequenceSpace.nxt);
     _connection->rteTcpHdr.data_off = 5 << 4;
-    uint16_t size = sizeof(struct rte_tcp_hdr) + sizeof(struct rte_ipv4_hdr);
+    uint16_t size = sizeof(struct rte_tcp_hdr) + sizeof(struct rte_ipv4_hdr) + data_size;
 
     _connection->rteIpv4Hdr.type_of_service = 0;
     _connection->rteIpv4Hdr.time_to_live = IP_DEFTTL;
@@ -178,7 +180,7 @@ void tcp_tx_packets(struct tcp *_tcp, struct connection *_connection) {
     _connection->rteIpv4Hdr.hdr_checksum = rte_ipv4_cksum(&_connection->rteIpv4Hdr);
     _connection->rteTcpHdr.cksum = rte_ipv4_udptcp_cksum(&_connection->rteIpv4Hdr, &_connection->rteTcpHdr);
 
-    send_p(_tcp, _connection);
+    send_p(_tcp, _connection, data, data_size);
 
     if ((_connection->rteTcpHdr.tcp_flags & RTE_TCP_SYN_FLAG) != 0) {
         _connection->sendSequenceSpace.nxt = _connection->sendSequenceSpace.nxt + 1;
@@ -200,7 +202,11 @@ bool segment_check(struct connection *_connection, uint32_t slen, uint32_t seqn)
             return is_between_wrapped(_connection->receiveSequenceSpace.nxt - 1, seqn, wnd);
         }
     } else {
-        rte_panic("not implemented!");
+        if (_connection->receiveSequenceSpace.wnd == 0) {
+            return false;
+        } else {
+            return true; // more rigours check later
+        }
     }
 }
 
@@ -258,7 +264,7 @@ void active_connect(struct tcp *_tcp, rte_be32_t dip, rte_be16_t dport, rte_be16
         _connection->rteTcpHdr.tcp_flags = RTE_TCP_SYN_FLAG;
         _connection->tcpState = TCP_SYN_SENT;
 
-        tcp_tx_packets(_tcp, _connection);
+        tcp_tx_packets(_tcp, _connection, NULL, 0);
         rte_hash_add_key_data(_tcp->rteHash, &q, (void *) _connection);
         printf("connection added");
     } else {

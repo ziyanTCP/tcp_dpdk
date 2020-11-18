@@ -38,6 +38,6 @@ struct connection * handle_tcp_listen(struct tcp *_tcp, struct quad q, struct rt
     _connection->rteTcpHdr.rx_win = rte_cpu_to_be_16(wnd);
     _connection->rteTcpHdr.tcp_flags = RTE_TCP_SYN_FLAG | RTE_TCP_ACK_FLAG;
 
-    tcp_tx_packets(_tcp, _connection);
+    tcp_tx_packets(_tcp, _connection, data, size);
     return _connection;
 }

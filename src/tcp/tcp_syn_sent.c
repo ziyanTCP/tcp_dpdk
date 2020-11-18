@@ -16,7 +16,7 @@ void handle_tcp_syn_sent(struct tcp *_tcp, struct connection *_connection, struc
         if (is_between_wrapped((_connection->sendSequenceSpace.una - 1), ackn,
                                (_connection->sendSequenceSpace.nxt + 1))) {
             _connection->tcpState = TCP_ESTABLISHED;
-            _connection->sendSequenceSpace.una = ackn +1;
+            _connection->sendSequenceSpace.una = ackn + 1;
         }
     } else {
         return;
@@ -24,14 +24,14 @@ void handle_tcp_syn_sent(struct tcp *_tcp, struct connection *_connection, struc
 
     _connection->rteTcpHdr.tcp_flags = RTE_TCP_ACK_FLAG;
     _connection->receiveSequenceSpace.nxt = seq + 1;
-    tcp_tx_packets(_tcp, _connection);
+    tcp_tx_packets(_tcp, _connection, data, size);
 
 
     // let's close the connection directly
     sleep(2);
     _connection->rteTcpHdr.tcp_flags = RTE_TCP_FIN_FLAG | RTE_TCP_ACK_FLAG;
     _connection->receiveSequenceSpace.nxt = seq + 1;
-    tcp_tx_packets(_tcp, _connection);
+    tcp_tx_packets(_tcp, _connection, data, size);
     _connection->tcpState = TCP_FIN_WAIT1;
 
 }

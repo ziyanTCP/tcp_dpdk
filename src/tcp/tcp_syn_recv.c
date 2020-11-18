@@ -17,7 +17,7 @@ void handle_tcp_syn_recv(struct tcp *_tcp, struct connection *_connection, struc
             _connection->sendSequenceSpace.nxt = _connection->sendSequenceSpace.nxt - 1;
             _connection->rteTcpHdr.tcp_flags = _connection->rteTcpHdr.tcp_flags | RTE_TCP_SYN_FLAG;
 //            printf("retransmit!\n");
-            tcp_tx_packets(_tcp, _connection);
+            tcp_tx_packets(_tcp, _connection, data, size);
         }
         return;
     }

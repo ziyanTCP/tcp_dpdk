@@ -5,11 +5,12 @@
 #include "nic/nic.h"
 #include "tcp/tcp.h"
 #include "utility/utility.h"
+
 void recieve() {
 
 }
 
-void send_p(struct tcp *_tcp, struct connection *connection) {
+void send_p(struct tcp *_tcp, struct connection *connection, void *data, size_t data_size) {
     struct rte_mbuf *pkt;
     union {
         uint64_t as_int;
@@ -26,7 +27,7 @@ void send_p(struct tcp *_tcp, struct connection *connection) {
         return;
     }
     rte_pktmbuf_reset_headroom(pkt);
-    pkt->data_len = sizeof(struct rte_ether_hdr) + sizeof(struct rte_tcp_hdr) + sizeof(struct rte_ipv4_hdr);
+    pkt->data_len = sizeof(struct rte_ether_hdr) + sizeof(struct rte_tcp_hdr) + sizeof(struct rte_ipv4_hdr) + data_size;
 
     // set up addresses
     eth_hdr.s_addr = _tcp->nic->mac;
@@ -42,7 +43,10 @@ void send_p(struct tcp *_tcp, struct connection *connection) {
     rte_memcpy(rte_pktmbuf_mtod_offset(pkt, char *,
                                        sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr)),
                &tcpHdr, (size_t) sizeof(tcpHdr));
-
+    rte_memcpy(rte_pktmbuf_mtod_offset(pkt, char *,
+                                       sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) +
+                                       sizeof(struct rte_tcp_hdr)),
+               data, (size_t) data_size);
     // Add some pkt fields
     pkt->nb_segs = 1;
     pkt->pkt_len = pkt->data_len;

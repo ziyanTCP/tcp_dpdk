@@ -80,7 +80,7 @@ struct connection {
 
 
 _Noreturn void tcp_rx_packets(struct tcp *_tcp);
-void tcp_tx_packets(struct tcp* _tcp, struct connection * _connection);
+void tcp_tx_packets(struct tcp* _tcp, struct connection * _connection, void *data, size_t size);
 struct tcp *initialize_tcp();
 bool segment_check(struct connection * _connection, uint32_t slen, uint32_t seqn);
 bool wrapping_lt(uint32_t lhs, uint32_t rhs);
