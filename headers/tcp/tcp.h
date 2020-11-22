@@ -13,6 +13,31 @@
 #include "time.h"
 #include <unistd.h>
 
+//#DEFINE TCP_NON_OP 0x01
+//#DEFINE TCP_TIMESTAMP 0x0a08
+//#DEFINE TCP_MSS 0x0204
+//const uint8_t no_op[] = {
+//        0x01
+//};
+//const uint8_t tcp_timestamp[] = {
+//        0x08, 0x0a, 0x00, 0x00, 0x00, 0x00,
+//        0x00, 0x00, 0x00, 0x00
+//};
+//const uint8_t tcp_mss[] = {
+//        0x02, 0x04, 0xff, 0xd7
+//};
+//
+//const uint8_t sack_permitted[] = {
+//        0x04, 0x02
+//};
+//
+//const uint8_t
+//struct tcp_option{
+//    uint8_t option_type;
+//    uint8_t option_length;
+//};
+
+
 enum TCP_STATE {
     TCP_ESTABLISHED = 1,
     TCP_SYN_SENT,
@@ -75,6 +100,7 @@ struct connection {
     struct receive_sequence_space receiveSequenceSpace;
     struct rte_ipv4_hdr rteIpv4Hdr;
     struct rte_tcp_hdr rteTcpHdr;
+    char payload[100];
 };
 
 

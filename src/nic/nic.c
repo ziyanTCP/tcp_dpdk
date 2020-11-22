@@ -20,14 +20,32 @@ void send_p(struct tcp *_tcp, struct connection *connection, void *data, size_t 
     struct rte_ipv4_hdr ipv4Hdr;
     struct rte_tcp_hdr tcpHdr;
     struct rte_mbuf *pkts_burst[1];
-
     pkt = rte_mbuf_raw_alloc(_tcp->mbuf_pool);
     if (pkt == NULL) {
         printf("trouble at rte_mbuf_raw_alloc\n");
         return;
     }
     rte_pktmbuf_reset_headroom(pkt);
-    pkt->data_len = sizeof(struct rte_ether_hdr) + sizeof(struct rte_tcp_hdr) + sizeof(struct rte_ipv4_hdr) + data_size;
+
+    pkt->data_len = sizeof(struct rte_ether_hdr) + sizeof(struct rte_tcp_hdr) + sizeof(struct rte_ipv4_hdr) +
+                    data_size;
+
+//    //copy tcp option
+//    if (tcpHdr.tcp_flags & RTE_TCP_SYN_FLAG) {
+//        pkt->data_len = sizeof(struct rte_ether_hdr) + sizeof(struct rte_tcp_hdr) + sizeof(struct rte_ipv4_hdr) + 20 +
+//                        data_size;
+//        rte_memcpy(rte_pktmbuf_mtod_offset(pkt, char *,
+//                                           sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) +
+//                                           (((tcpHdr.data_off) >> 4) << 2)),
+//                   tcp_mss, (size_t) 4);
+//        rte_memcpy(rte_pktmbuf_mtod_offset(pkt, char *,
+//                                           sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) +
+//                                           (((tcpHdr.data_off) >> 4) << 2)) + 4,
+//                   sack_permitted, (size_t) 2);
+//    } else {
+//        pkt->data_len = sizeof(struct rte_ether_hdr) + sizeof(struct rte_tcp_hdr) + sizeof(struct rte_ipv4_hdr) + //12 +
+//                        data_size;
+//    }
 
     // set up addresses
     eth_hdr.s_addr = _tcp->nic->mac;
@@ -45,8 +63,9 @@ void send_p(struct tcp *_tcp, struct connection *connection, void *data, size_t 
                &tcpHdr, (size_t) sizeof(tcpHdr));
     rte_memcpy(rte_pktmbuf_mtod_offset(pkt, char *,
                                        sizeof(struct rte_ether_hdr) + sizeof(struct rte_ipv4_hdr) +
-                                       sizeof(struct rte_tcp_hdr)),
+                                       (((tcpHdr.data_off) >> 4) << 2)),
                data, (size_t) data_size);
+
     // Add some pkt fields
     pkt->nb_segs = 1;
     pkt->pkt_len = pkt->data_len;

@@ -67,6 +67,8 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
 //                        printf("total length is %u\n", rte_be_to_cpu_16(rteIpv4Hdr->total_length));
 //                        printf("size of ipv4 hdr is %lu\n", sizeof(struct rte_ipv4_hdr));
 //                        printf("size of ipv4 hdr is %u\n", (tcpHdr->data_off)>>4 *4);
+
+
                         int size = rte_be_to_cpu_16(rteIpv4Hdr->total_length) - sizeof(struct rte_ipv4_hdr) -
                                    (((tcpHdr->data_off) >> 4) << 2);
                         struct quad q;
@@ -164,14 +166,20 @@ struct tcp *initialize_tcp(struct rte_mempool *mempool) {
 void tcp_tx_packets(struct tcp *_tcp, struct connection *_connection, void *data, size_t data_size) {
     _connection->rteTcpHdr.sent_seq = rte_cpu_to_be_32(_connection->sendSequenceSpace.nxt);
     _connection->rteTcpHdr.recv_ack = rte_cpu_to_be_32(_connection->receiveSequenceSpace.nxt);
-    _connection->rteTcpHdr.data_off = 5 << 4;
+//    if ((_connection->rteTcpHdr.tcp_flags & RTE_TCP_SYN_FLAG) != 0) {
+//        _connection->rteTcpHdr.data_off = 10 << 4;
+//    } else {
+//        _connection->rteTcpHdr.data_off = 8 << 4;
+//    }
+
+    _connection->rteTcpHdr.data_off = 5<<4;
     uint16_t size = sizeof(struct rte_tcp_hdr) + sizeof(struct rte_ipv4_hdr) + data_size;
 
-    _connection->rteIpv4Hdr.type_of_service = 0;
+    _connection->rteIpv4Hdr.fragment_offset = rte_cpu_to_be_16(0x4000);
+    _connection->rteIpv4Hdr.packet_id = rte_cpu_to_be_16(rte_be_to_cpu_16(_connection->rteIpv4Hdr.packet_id) + 1);
     _connection->rteIpv4Hdr.time_to_live = IP_DEFTTL;
     _connection->rteIpv4Hdr.version_ihl = IP_VHL_DEF;
     _connection->rteIpv4Hdr.next_proto_id = IPPROTO_TCP;
-    _connection->rteIpv4Hdr.packet_id = 0;
     _connection->rteIpv4Hdr.total_length = rte_cpu_to_be_16(size);
     //calculate ip checksum
     _connection->rteIpv4Hdr.hdr_checksum = 0;
