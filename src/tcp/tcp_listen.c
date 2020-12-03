@@ -39,24 +39,24 @@ struct connection *handle_tcp_listen(struct tcp *_tcp, struct quad q, struct rte
     _connection->rteTcpHdr.tcp_flags = RTE_TCP_SYN_FLAG | RTE_TCP_ACK_FLAG;
 
 
-    // parse tcp option
-    int remaining_option_size = (((tcpHdr->data_off) >> 4) << 2) - 20;
-    printf("remaining option size is %d\n", remaining_option_size);
-    void *option_start = (void *) tcpHdr + 20;
-    while (remaining_option_size > 0) {
-        uint16_t option_information = rte_be_to_cpu_16(*(uint16_t *) (option_start));
-        int option_size = option_information % 256;
-        int option_type = option_information / 256;
-        if (option_type == 1) {
-            remaining_option_size = remaining_option_size - 1;
-            option_start += 1;
-            continue;
-        }
-        printf("option size is %u\n", option_size);
-        printf("option type is %u\n", option_type);
-        remaining_option_size -= option_size;
-        option_start += option_size;
-    }
+//    // parse tcp option
+//    int remaining_option_size = (((tcpHdr->data_off) >> 4) << 2) - 20;
+//    printf("remaining option size is %d\n", remaining_option_size);
+//    void *option_start = (void *) tcpHdr + 20;
+//    while (remaining_option_size > 0) {
+//        uint16_t option_information = rte_be_to_cpu_16(*(uint16_t *) (option_start));
+//        int option_size = option_information % 256;
+//        int option_type = option_information / 256;
+//        if (option_type == 1) {
+//            remaining_option_size = remaining_option_size - 1;
+//            option_start += 1;
+//            continue;
+//        }
+//        printf("option size is %u\n", option_size);
+//        printf("option type is %u\n", option_type);
+//        remaining_option_size -= option_size;
+//        option_start += option_size;
+//    }
     tcp_tx_packets(_tcp, _connection, data, size);
 
     return _connection;

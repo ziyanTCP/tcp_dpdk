@@ -68,7 +68,8 @@ struct tcp {
     struct tcp_statistics stats;
 };
 
-
+// size = 2*(32+16)/8 = 12 byte
+// compress into 64 bit
 struct quad {
     rte_be32_t sip;
     rte_be16_t sport;
