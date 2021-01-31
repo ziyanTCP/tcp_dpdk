@@ -22,7 +22,7 @@ void handle_tcp_syn_recv(struct tcp *_tcp, struct connection *_connection, struc
         return;
     }
     if (is_between_wrapped(_connection->sendSequenceSpace.una - 1, ackn, _connection->sendSequenceSpace.nxt + 1)) {
-//        printf("connection established!");
+//        printf("connection established! %d\n", _tcp->core_id);
         _connection->tcpState = TCP_ESTABLISHED;
         if (_tcp->stats.first_connection == 0) {
             _tcp->stats.first_connection = clock();

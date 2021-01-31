@@ -63,9 +63,16 @@ struct tcp_statistics{
 
 struct tcp {
     struct nic *nic;
-    struct rte_mempool *mbuf_pool;
     struct rte_hash *rteHash;
     struct tcp_statistics stats;
+    int core_id;
+    int queue_id;
+    long rxn; // number of packets recieved
+    long txn; // number of packets sent
+    int max_pkt_burst;
+    struct rte_timer timer;
+    volatile bool dp_quit;
+    struct rte_mempool* mbuf_pool;
 };
 
 // size = 2*(32+16)/8 = 12 byte
@@ -108,7 +115,7 @@ struct connection {
 
 _Noreturn void tcp_rx_packets(struct tcp *_tcp);
 void tcp_tx_packets(struct tcp* _tcp, struct connection * _connection, void *data, size_t size);
-struct tcp *initialize_tcp();
+struct tcp *initialize_tcp(struct rte_mempool *mempool, struct tcp* _tcp, unsigned int lcore_id);
 bool segment_check(struct connection * _connection, uint32_t slen, uint32_t seqn);
 bool wrapping_lt(uint32_t lhs, uint32_t rhs);
 bool is_between_wrapped(uint32_t start, uint32_t x, uint32_t end);

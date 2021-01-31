@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Copyright(c) 2010-2014 Intel Corporation
 # binary name
-APP = mytcp
+APP = tcp
 
 SRCS-y := $(shell find /home/ziyan/project/tcp/src -name "*.c")
 
