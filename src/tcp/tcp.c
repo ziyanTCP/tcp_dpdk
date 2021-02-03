@@ -122,7 +122,9 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
            rte_lcore_id());
 }
 
-struct tcp *initialize_tcp(struct rte_mempool *mempool, struct tcp *_tcp, unsigned int lcore_id) {
+struct tcp *
+initialize_tcp(struct rte_mempool *mempool, struct tcp *_tcp, unsigned int lcore_id, char *src_ip,
+               char *src_mac, char *dst_mac) {
     _tcp->stats.first_connection = 0;
     _tcp->stats.first_connection = 0;
     _tcp->stats.connection_count = 0;
@@ -146,15 +148,15 @@ struct tcp *initialize_tcp(struct rte_mempool *mempool, struct tcp *_tcp, unsign
         rte_exit(EXIT_FAILURE, "Unable to create the hash");
 
     struct nic *_nic = rte_malloc(NULL, sizeof(struct nic), 0);
-    _nic->ip = rte_cpu_to_be_32(string_to_ip("192.168.11.11"));
-    char mac[] = "24:4b:fe:5b:3e:6e";
+    _nic->ip = rte_cpu_to_be_32(string_to_ip(src_ip));
+//    char mac[] = "24:4b:fe:5b:3e:6e";
     struct rte_ether_addr eth;
-    rte_ether_unformat_addr(mac, &eth); //fake a mac address
+    rte_ether_unformat_addr(src_mac, &eth); //fake a mac address
     _nic->mac = eth;
     // char destination_mac[] = "24:4d:54:25:51:3e";
     //char destination_mac[] = "24:4b:fe:5b:3e:5e";
-    char destination_mac[] = "a0:36:9f:1b:eb:90";
-    rte_ether_unformat_addr(destination_mac, &eth); //fake a mac address
+//    char destination_mac[] = "a0:36:9f:1b:eb:90";
+    rte_ether_unformat_addr(dst_mac, &eth); //fake a mac address
 
     _nic->dst_mac = eth;
     _tcp->nic = _nic;

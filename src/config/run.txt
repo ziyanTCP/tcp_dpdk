@@ -3,3 +3,10 @@ build/tcp
 03:00.0
 -l
 0,1
+--
+src_ip
+192.168.0.1
+src_mac
+80:61:5f:06:12:d6
+dst_mac
+a0:36:9f:1b:eb:90

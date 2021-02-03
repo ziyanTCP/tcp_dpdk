@@ -128,7 +128,9 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp);
 
 void tcp_tx_packets(struct tcp *_tcp, struct connection *_connection, void *data, size_t size);
 
-struct tcp *initialize_tcp(struct rte_mempool *mempool, struct tcp *_tcp, unsigned int lcore_id);
+struct tcp *
+initialize_tcp(struct rte_mempool *mempool, struct tcp *_tcp, unsigned int lcore_id, char *src_ip,
+               char *src_mac, char *dst_mac);
 
 bool segment_check(struct connection *_connection, uint32_t slen, uint32_t seqn);
 

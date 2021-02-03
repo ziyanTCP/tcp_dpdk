@@ -101,7 +101,7 @@ int port_init(uint16_t port, struct rte_mempool *mbuf_pool, int nb_core, uint16_
     return 0;
 }
 
-int l2fwd_parse_args(struct config *c) {
+int parse_args(struct config *c) {
     // printf("the remaining command is: ");
     int argc = c->argc;
     char **argv = c->argv;
@@ -129,8 +129,27 @@ int l2fwd_parse_args(struct config *c) {
 //
 //                pci_cleanup(c->pacc);		/* Close everything */
                 continue;
+            }
+
+            if (strcmp(argv[i], "src_ip") == 0) {
+                printf("src_ip: %s\n", argv[i + 1]);
+                strcpy(c->src_ip, argv[i + 1]);
+                i++;
+                continue;
+            }
+            if (strcmp(argv[i], "src_mac") == 0) {
+                printf("src_mac: %s\n", argv[i + 1]);
+                strcpy(c->src_mac, argv[i + 1]);
+                i++;
+                continue;
+            }
+            if (strcmp(argv[i], "dst_mac") == 0) {
+                printf("dst_mac: %s\n", argv[i + 1]);
+                strcpy(c->dst_mac, argv[i + 1]);
+                i++;
+                continue;
             } else {
-                printf("not supported\n");
+                printf("argument: %s\n", argv[i]);
             }
         }
     }
@@ -198,8 +217,10 @@ struct config *config_init(char *config_file) {
 
     c->argc -= ret;
     c->argv += ret;
+
+    parse_args(c);
 //
-//    ret = l2fwd_parse_args(c);
+//    ret = parse_args(c);
 //    if (ret < 0)
 //        rte_exit(EXIT_FAILURE, "Invalid l2fwd arguments\n");
 //    c->argc -= ret;
@@ -253,7 +274,7 @@ struct config *config_init(char *config_file) {
         (c->tcp_list)[i].max_pkt_burst = c->max_pkt_burst;
         (c->tcp_list)[i].queue_id = i;
         (c->tcp_list)[i].mbuf_pool = c->mbuf_pool;
-        initialize_tcp(c->mbuf_pool, &(c->tcp_list)[i], lcore_id);
+        initialize_tcp(c->mbuf_pool, &(c->tcp_list)[i], lcore_id, c->src_ip, c->src_mac, c->dst_mac);
         i++;
     }
 

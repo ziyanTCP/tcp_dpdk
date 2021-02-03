@@ -41,9 +41,13 @@ struct config {
     uint8_t nic_bus;
     struct rte_mempool * mbuf_pool;
     struct tcp* tcp_list;
+
+    char src_ip[50];
+    char src_mac[50];
+    char dst_mac[50];
 };
 extern struct config *c;
 struct config *config_init(char *config_file);
-int l2fwd_parse_args(struct config *c);
+int parse_args(struct config *c);
 int port_init(uint16_t port, struct rte_mempool *mbuf_pool, int nb_core, uint16_t nb_rxd, uint16_t nb_txd);
 #endif //MULTICORE_FWDING_DPDK_CONFIG_H
