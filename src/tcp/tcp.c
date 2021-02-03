@@ -26,7 +26,7 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
            rte_lcore_id());
 
     /* Run until the application is quit or killed. */
-    for (;;) {
+    while (!(_tcp->dp_quit)) {
 
         struct rte_mbuf *bufs[1000];
         const uint16_t nb_rx = rte_eth_rx_burst(port, _tcp->queue_id,
@@ -43,16 +43,18 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
 
 //                printf("----->processing packet %d\n",i);
 //                printf("----->pkt_len=%d\n",bufs[i]->pkt_len);
+//            DumpHex(rte_pktmbuf_mtod(bufs[i], char *), bufs[i]->pkt_len);
             rteEtherHdr = rte_pktmbuf_mtod(bufs[i], struct rte_ether_hdr *);
             if (!rte_is_same_ether_addr(&rteEtherHdr->d_addr, &_tcp->nic->mac)) {
                 continue;
             }
             if (rteEtherHdr->ether_type == rte_be_to_cpu_16(RTE_ETHER_TYPE_IPV4)) {
+
                 rteIpv4Hdr = rte_pktmbuf_mtod_offset(bufs[i], struct ipv4_hdr *, sizeof(struct rte_ether_hdr));
                 if (_tcp->nic->ip != rteIpv4Hdr->dst_addr) {
 //                        DumpHex(rte_pktmbuf_mtod(bufs[i], char *), bufs[i]->pkt_len);
 //                        printf("drop the ip packet");
-//                    continue;
+                    continue;
                 }
 
                 if (rteIpv4Hdr->next_proto_id == IPPROTO_TCP) {
@@ -116,6 +118,8 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
             rte_pktmbuf_free(bufs[i]);
         }
     }
+    printf("\nCore %u is exiting\n",
+           rte_lcore_id());
 }
 
 struct tcp *initialize_tcp(struct rte_mempool *mempool, struct tcp *_tcp, unsigned int lcore_id) {
@@ -148,7 +152,8 @@ struct tcp *initialize_tcp(struct rte_mempool *mempool, struct tcp *_tcp, unsign
     rte_ether_unformat_addr(mac, &eth); //fake a mac address
     _nic->mac = eth;
     // char destination_mac[] = "24:4d:54:25:51:3e";
-    char destination_mac[] = "24:4b:fe:5b:3e:5e";
+    //char destination_mac[] = "24:4b:fe:5b:3e:5e";
+    char destination_mac[] = "a0:36:9f:1b:eb:90";
     rte_ether_unformat_addr(destination_mac, &eth); //fake a mac address
 
     _nic->dst_mac = eth;
@@ -267,9 +272,34 @@ void active_connect(struct tcp *_tcp, rte_be32_t dip, rte_be16_t dport, rte_be16
 
         tcp_tx_packets(_tcp, _connection, NULL, 0);
         rte_hash_add_key_data(_tcp->rteHash, &q, (void *) _connection);
-        printf("connection added");
+        dump_connection(_connection);
+        printf("connection added\n");
     } else {
         // altrady has that connection
         return;
+    }
+}
+
+void active_close(struct tcp *_tcp, struct connection *_connection) {
+    _connection->rteTcpHdr.tcp_flags = RTE_TCP_FIN_FLAG | RTE_TCP_ACK_FLAG;
+    tcp_tx_packets(_tcp, _connection, NULL, 0);
+    _connection->tcpState = TCP_FIN_WAIT1;
+}
+
+void dump_connection(struct connection *c) {
+    printf("sip " IPv4_BYTES_FMT" ", IPv4_BYTES(rte_be_to_cpu_32(c->q.sip)));
+    printf("sport %u\n", (unsigned int) (rte_be_to_cpu_16(c->q.sport)));
+    printf("dip " IPv4_BYTES_FMT" ", IPv4_BYTES(rte_be_to_cpu_32(c->q.dip)));
+    printf("dport %u\n", (unsigned int) (rte_be_to_cpu_16(c->q.dport)));
+    printf("State: %s\n", TCP_STATE_string[c->tcpState]);
+}
+
+void dump_hashtable(struct rte_hash *rteHash) {
+    const void *next_key;
+    void *next_data;
+    uint32_t iter = 0;
+    while (-ENOENT != rte_hash_iterate(rteHash, &next_key, &next_data, &iter)) {
+//        printf("%d:%d\n", *(int*)next_key, *(int*)next_data);
+        dump_connection((struct connection *) next_data);
     }
 }

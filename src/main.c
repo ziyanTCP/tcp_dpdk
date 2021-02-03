@@ -11,9 +11,7 @@
 struct config *c;
 
 struct tcp *_tcp;
-
-void exit_stats(int sig);
-
+struct conn *conn;
 void exit_stats(int sig) {
 //    printf("Caught signal %d\n", sig);
 //    printf("Total received packets: %lu\n", packet_count);
@@ -34,7 +32,7 @@ int main(int argc, char *argv[]) {
 
     c = config_init("/home/ziyan/project/tcp/src/config/run.txt");
 
-    struct conn *conn;
+
     int status;
     /* Connectivity */
     conn = conn_init();
@@ -45,16 +43,15 @@ int main(int argc, char *argv[]) {
     }
 
     signal(SIGINT, exit_stats);
+    signal(SIGTERM, exit_stats);
 
-    while (!(c->cp_quit)){
+    while (!(c->cp_quit)) {
         conn_poll_for_conn(conn);
 
         conn_poll_for_msg(conn);
-
-//		kni_handle_request();
     }
-
-    close(conn->fd_server);
+    conn_free(conn);
+    rte_eal_mp_wait_lcore();
 
 //    /* Initialize the Environment Abstraction Layer (EAL). */
 //    int ret = rte_eal_init(argc, argv);

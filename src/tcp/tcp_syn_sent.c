@@ -28,10 +28,10 @@ void handle_tcp_syn_sent(struct tcp *_tcp, struct connection *_connection, struc
 
 
     // let's close the connection directly
-    sleep(2);
-    _connection->rteTcpHdr.tcp_flags = RTE_TCP_FIN_FLAG | RTE_TCP_ACK_FLAG;
-    _connection->receiveSequenceSpace.nxt = seq + 1;
-    tcp_tx_packets(_tcp, _connection, data, size);
-    _connection->tcpState = TCP_FIN_WAIT1;
+//    sleep(2);
+//    _connection->rteTcpHdr.tcp_flags = RTE_TCP_FIN_FLAG | RTE_TCP_ACK_FLAG;
+//    _connection->receiveSequenceSpace.nxt = seq + 1;
+//    tcp_tx_packets(_tcp, _connection, data, size);
+//    _connection->tcpState = TCP_FIN_WAIT1;
 
 }

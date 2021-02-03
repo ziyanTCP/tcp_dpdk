@@ -15,6 +15,7 @@
 
 #include "cli/parser.h"
 #include "config/config.h"
+#include "utility/utility.h"
 
 #ifndef CMD_MAX_TOKENS
 #define CMD_MAX_TOKENS     256
@@ -214,7 +215,7 @@ cli_process(char *in, char *out, size_t out_size, int fd_client) {
 
     if (strcmp(tokens[0], "start") == 0) {
         snprintf(out, out_size, "start the tcp thread!\n");
-        int i=0;
+        int i = 0;
         unsigned int lcore_id;
         RTE_LCORE_FOREACH_SLAVE(lcore_id) {
             rte_eal_remote_launch((lcore_function_t *) tcp_rx_packets, &(c->tcp_list[i]), lcore_id);
@@ -250,16 +251,108 @@ cli_process(char *in, char *out, size_t out_size, int fd_client) {
 //        }
 //        return;
     }
+//    if (strcmp(tokens[0], "close") == 0) {
+//
+//        close(fd_client);
+//        return;
+//    }
 
     if (strcmp(tokens[0], "exit") == 0) {
-//        c->dp_quit = true;
+        int i = 0;
+        unsigned int lcore_id;
+        RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+            c->tcp_list[i].dp_quit = true;
+            i++;
+        }
         c->cp_quit = true;
-        close(fd_client);
+//        close(fd_client);
         return;
     }
 
-    if (strcmp(tokens[0], "flow") == 0) {
+    if (strcmp(tokens[0], "dump") == 0) {
+        snprintf(out, out_size, "dump!\n");
+        int i = 0;
+        unsigned int lcore_id;
+        RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+            dump_hashtable(c->tcp_list[i].rteHash);
+            i++;
+        }
         return;
     }
+
+    // flow source_ip source_port destination_ip destination_port
+    // example: flow 192.168.11.111 34962 192.168.11.11 2000
+    if (strcmp(tokens[0], "flow") == 0) {
+        if (n_tokens != 5) {
+            snprintf(out, out_size, "we need 5 tokens!\n");
+            return;
+        }
+        snprintf(out, out_size, "look up the flow...\n");
+        struct quad q;
+        q.sip = rte_cpu_to_be_32(string_to_ip(tokens[1]));
+        q.sport = rte_cpu_to_be_16(atoi(tokens[2]));
+        q.dip = rte_cpu_to_be_32(string_to_ip(tokens[3]));
+        q.dport = rte_cpu_to_be_16(atoi(tokens[4]));
+//        snprintf(out, out_size, "flow!\n");
+        struct connection *connection = NULL;
+        int i = 0;
+        unsigned int lcore_id;
+        RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+            int result = rte_hash_lookup_data(c->tcp_list[i].rteHash, &q, (void **) &connection);
+            if (result == -ENOENT) {
+                i++;
+                continue;
+            } else {
+                dump_connection(connection);
+                return;
+            }
+        }
+        printf("connection not found\n");
+        return;
+    }
+
+    // flow source_ip source_port destination_ip destination_port
+    // example: close 192.168.11.111 37736 192.168.11.11 2000
+    if (strcmp(tokens[0], "close") == 0) {
+        if (n_tokens != 5) {
+            snprintf(out, out_size, "we need 5 tokens!\n");
+            return;
+        }
+        snprintf(out, out_size, "look up the flow...\n");
+        struct quad q;
+        q.sip = rte_cpu_to_be_32(string_to_ip(tokens[1]));
+        q.sport = rte_cpu_to_be_16(atoi(tokens[2]));
+        q.dip = rte_cpu_to_be_32(string_to_ip(tokens[3]));
+        q.dport = rte_cpu_to_be_16(atoi(tokens[4]));
+//        snprintf(out, out_size, "flow!\n");
+        struct connection *connection = NULL;
+        int i = 0;
+        unsigned int lcore_id;
+        RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+            int result = rte_hash_lookup_data(c->tcp_list[i].rteHash, &q, (void **) &connection);
+            if (result == -ENOENT) {
+                i++;
+                continue;
+            } else {
+                active_close(&(c->tcp_list[i]), connection);
+                return;
+            }
+        }
+        printf("connection not found\n");
+        return;
+    }
+
+    if (strcmp(tokens[0], "connect") == 0) {
+        snprintf(out, out_size, "connect!\n");
+        int i = 0;
+        unsigned int lcore_id;
+        rte_be32_t dip = rte_cpu_to_be_32(string_to_ip("192.168.11.111"));
+        rte_be32_t dport = rte_cpu_to_be_16(3000); //
+        rte_be32_t sport = rte_cpu_to_be_16(8000); // the port of this program
+        active_connect(&(c->tcp_list[0]), dip, dport, sport);
+        return;
+    }
+
+
     snprintf(out, out_size, MSG_CMD_UNKNOWN, tokens[0]);
 }

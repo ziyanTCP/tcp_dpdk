@@ -18,5 +18,6 @@ void handle_tcp_fin_wait2(struct tcp *_tcp, struct connection *_connection, stru
         _connection->rteTcpHdr.tcp_flags = RTE_TCP_ACK_FLAG;
         _connection->receiveSequenceSpace.nxt = seq + 1;
         tcp_tx_packets(_tcp, _connection, data, size);
+        rte_hash_del_key(_tcp->rteHash, &_connection->q);
     }
 }
