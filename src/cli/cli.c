@@ -346,7 +346,7 @@ cli_process(char *in, char *out, size_t out_size, int fd_client) {
         snprintf(out, out_size, "connect!\n");
         int i = 0;
         unsigned int lcore_id;
-        rte_be32_t dip = rte_cpu_to_be_32(string_to_ip("192.168.11.111"));
+        rte_be32_t dip = rte_cpu_to_be_32(string_to_ip(tokens[1]));
         rte_be32_t dport = rte_cpu_to_be_16(3000); //
         rte_be32_t sport = rte_cpu_to_be_16(8000); // the port of this program
         active_connect(&(c->tcp_list[0]), dip, dport, sport);
