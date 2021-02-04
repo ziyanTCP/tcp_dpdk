@@ -22,6 +22,12 @@ void exit_stats(int sig) {
 //                                         ((double) (_tcp->stats.last_connection - _tcp->stats.first_connection) /
 //                                          (CLOCKS_PER_SEC)));
     c->cp_quit = true;
+    int i= 0;
+    unsigned int lcore_id;
+    RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+        (c->tcp_list)[i].dp_quit = true;
+        i++;
+    }
 }
 
 // Q1: how much time to send and recieve?
@@ -52,42 +58,5 @@ int main(int argc, char *argv[]) {
     }
     conn_free(conn);
     rte_eal_mp_wait_lcore();
-
-//    /* Initialize the Environment Abstraction Layer (EAL). */
-//    int ret = rte_eal_init(argc, argv);
-//    if (ret < 0)
-//        rte_exit(EXIT_FAILURE, "Error with EAL initialization\n");
-//
-//    argc -= ret;
-//    argv += ret;
-//
-//    nb_ports = rte_eth_dev_count_avail();
-//    printf("rte_eth_dev_count_avail()=%d\n", nb_ports);
-//
-//    mbuf_pool = rte_pktmbuf_pool_create("MBUF_POOL", NUM_MBUFS * nb_ports,
-//                                        MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE,
-//                                        rte_socket_id());
-//    if (mbuf_pool == NULL)
-//        rte_exit(EXIT_FAILURE, "Cannot create mbuf pool\n");
-//
-//    /* Initialize all ports. */
-//    RTE_ETH_FOREACH_DEV(portid)if (port_init(portid, mbuf_pool) != 0)
-//            rte_exit(EXIT_FAILURE, "Cannot init port %"PRIu16 "\n",
-//                     portid);
-//
-//    _tcp = initialize_tcp(mbuf_pool);
-//    signal(SIGINT, exit_stats);
-
-
-
-
-
-//    rte_be32_t dip = rte_cpu_to_be_32(string_to_ip("192.168.11.12"));
-//    rte_be32_t dport = rte_cpu_to_be_16(2000); //
-//    rte_be32_t sport = rte_cpu_to_be_16(8000); // the port of this program
-//    sleep(3);
-//
-//    active_connect(_tcp, dip, dport, sport);
-//    tcp_rx_packets(_tcp);
     return 0;
 }

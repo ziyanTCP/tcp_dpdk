@@ -21,7 +21,8 @@ void handle_tcp_fin_wait1(struct tcp *_tcp, struct connection *_connection, stru
             _connection->rteTcpHdr.tcp_flags = RTE_TCP_ACK_FLAG;
             _connection->receiveSequenceSpace.nxt = seq + 1;
             tcp_tx_packets(_tcp, _connection, NULL, 0);
-            printf("enter TCP FIN WAIT2\n");
+            printf("closing\n"); // if it is FIN ACK, close directly
+            rte_hash_del_key(_tcp->rteHash, &_connection->q);
         } else {
             printf("not ack the correct one\n");
         }
