@@ -3,7 +3,6 @@
 //
 
 #include "tcp/tcp_establish.h"
-
 void print_data(char *data, int size) {
     for (int i = 0; i < size; i++) {
         printf("%c", *(data + i));
@@ -26,6 +25,7 @@ void handle_tcp_establish(struct tcp *_tcp, struct connection *_connection, stru
             _connection->rteTcpHdr.tcp_flags = RTE_TCP_FIN_FLAG | RTE_TCP_ACK_FLAG;
             tcp_tx_packets(_tcp, _connection, data, size);
             _connection->tcpState = TCP_LAST_ACK;
+
         } else {
 
             print_data(data, size);
