@@ -63,9 +63,9 @@ enum TCP_STATE {
 };
 
 static char *TCP_STATE_string[] = {"TCP_ESTABLISHED", "TCP_SYN_SENT", "TCP_SYN_RECV", "TCP_FIN_WAIT1", "TCP_FIN_WAIT2",
-                                  "TCP_TIME_WAIT", "TCP_CLOSE", "TCP_CLOSE_WAIT", "TCP_LAST_ACK", "TCP_LISTEN",
-                                  "TCP_CLOSING",
-                                  "TCP_MAX_STATES"};
+                                   "TCP_TIME_WAIT", "TCP_CLOSE", "TCP_CLOSE_WAIT", "TCP_LAST_ACK", "TCP_LISTEN",
+                                   "TCP_CLOSING",
+                                   "TCP_MAX_STATES"};
 
 struct tcp_statistics {
     u_long connection_count;
@@ -140,7 +140,9 @@ bool is_between_wrapped(uint32_t start, uint32_t x, uint32_t end);
 
 void active_connect(struct tcp *_tcp, rte_be32_t dip, rte_be16_t dport, rte_be16_t sport);
 
-void active_close(struct tcp *_tcp, struct connection * c);
+void active_close(struct tcp *_tcp, struct connection *c);
+
+void active_send_data(struct tcp *_tcp, struct connection *_connection, char* data, int size);
 
 void dump_connection(struct connection *c);
 

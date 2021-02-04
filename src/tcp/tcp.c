@@ -43,7 +43,7 @@ _Noreturn void tcp_rx_packets(struct tcp *_tcp) {
 
 //                printf("----->processing packet %d\n",i);
 //                printf("----->pkt_len=%d\n",bufs[i]->pkt_len);
-//            DumpHex(rte_pktmbuf_mtod(bufs[i], char *), bufs[i]->pkt_len);
+            DumpHex(rte_pktmbuf_mtod(bufs[i], char *), bufs[i]->pkt_len);
             rteEtherHdr = rte_pktmbuf_mtod(bufs[i], struct rte_ether_hdr *);
             if (!rte_is_same_ether_addr(&rteEtherHdr->d_addr, &_tcp->nic->mac)) {
                 continue;
@@ -288,11 +288,20 @@ void active_close(struct tcp *_tcp, struct connection *_connection) {
     _connection->tcpState = TCP_FIN_WAIT1;
 }
 
+void active_send_data(struct tcp *_tcp, struct connection *_connection, char* data, int size){
+    _connection->rteTcpHdr.tcp_flags = RTE_TCP_ACK_FLAG | RTE_TCP_PSH_FLAG;
+    for(int i=0;i<size;i++){
+            _connection->payload[i] = *((char*)data +i);
+    }
+    tcp_tx_packets(_tcp, _connection, data, size);
+}
+
 void dump_connection(struct connection *c) {
-    printf("sip " IPv4_BYTES_FMT" ", IPv4_BYTES(rte_be_to_cpu_32(c->q.sip)));
-    printf("sport %u\n", (unsigned int) (rte_be_to_cpu_16(c->q.sport)));
-    printf("dip " IPv4_BYTES_FMT" ", IPv4_BYTES(rte_be_to_cpu_32(c->q.dip)));
-    printf("dport %u\n", (unsigned int) (rte_be_to_cpu_16(c->q.dport)));
+    printf("connection src_ip src_port dst_ip dst_port\n");
+    printf(IPv4_BYTES_FMT, IPv4_BYTES(rte_be_to_cpu_32(c->q.sip)));
+    printf(" %u ", (unsigned int) (rte_be_to_cpu_16(c->q.sport)));
+    printf(IPv4_BYTES_FMT, IPv4_BYTES(rte_be_to_cpu_32(c->q.dip)));
+    printf(" %u\n", (unsigned int) (rte_be_to_cpu_16(c->q.dport)));
     printf("State: %s\n", TCP_STATE_string[c->tcpState]);
 }
 

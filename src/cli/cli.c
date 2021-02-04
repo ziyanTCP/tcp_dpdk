@@ -342,6 +342,37 @@ cli_process(char *in, char *out, size_t out_size, int fd_client) {
         return;
     }
 
+    // flow source_ip source_port destination_ip destination_port
+    // example: send 192.168.11.111 37736 192.168.11.11 2000 hello
+    if (strcmp(tokens[0], "send") == 0) {
+        if (n_tokens != 6) {
+            snprintf(out, out_size, "we need 5 tokens!\n");
+            return;
+        }
+        snprintf(out, out_size, "look up the flow...\n");
+        struct quad q;
+        q.sip = rte_cpu_to_be_32(string_to_ip(tokens[1]));
+        q.sport = rte_cpu_to_be_16(atoi(tokens[2]));
+        q.dip = rte_cpu_to_be_32(string_to_ip(tokens[3]));
+        q.dport = rte_cpu_to_be_16(atoi(tokens[4]));
+//        snprintf(out, out_size, "flow!\n");
+        struct connection *connection = NULL;
+        int i = 0;
+        unsigned int lcore_id;
+        RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+            int result = rte_hash_lookup_data(c->tcp_list[i].rteHash, &q, (void **) &connection);
+            if (result == -ENOENT) {
+                i++;
+                continue;
+            } else {
+                active_send_data(&(c->tcp_list[i]), connection, tokens[5], strlen(tokens[5]));
+                return;
+            }
+        }
+        printf("connection not found\n");
+        return;
+    }
+
     if (strcmp(tokens[0], "connect") == 0) {
         snprintf(out, out_size, "connect!\n");
         int i = 0;

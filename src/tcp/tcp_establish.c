@@ -27,11 +27,16 @@ void handle_tcp_establish(struct tcp *_tcp, struct connection *_connection, stru
             _connection->tcpState = TCP_LAST_ACK;
 
         } else {
-
-            print_data(data, size);
-            _connection->rteTcpHdr.tcp_flags = RTE_TCP_ACK_FLAG;
-            _connection->receiveSequenceSpace.nxt = seq + size;
-            tcp_tx_packets(_tcp, _connection, NULL, 0);
+            if(size==0){
+                _connection->sendSequenceSpace.nxt = ackn;
+            }
+            else {
+                print_data(data, size);
+                _connection->rteTcpHdr.tcp_flags = RTE_TCP_ACK_FLAG;
+                _connection->receiveSequenceSpace.nxt = seq + size;
+                _connection->sendSequenceSpace.nxt = ackn;
+                tcp_tx_packets(_tcp, _connection, NULL, 0);
+            }
 //            sleep(2);
 //            _connection->rteTcpHdr.tcp_flags = RTE_TCP_ACK_FLAG | RTE_TCP_PSH_FLAG;
 //            for(int i=0;i<size;i++){
