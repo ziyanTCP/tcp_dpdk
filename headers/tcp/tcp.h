@@ -48,7 +48,7 @@
 
 
 enum TCP_STATE {
-    TCP_ESTABLISHED = 1,
+    TCP_ESTABLISHED = 0,
     TCP_SYN_SENT,
     TCP_SYN_RECV,
     TCP_FIN_WAIT1,
