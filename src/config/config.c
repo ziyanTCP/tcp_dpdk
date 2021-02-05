@@ -278,5 +278,10 @@ struct config *config_init(char *config_file) {
         i++;
     }
 
+    i = 0;
+    RTE_LCORE_FOREACH_SLAVE(lcore_id) {
+        rte_eal_remote_launch((lcore_function_t *) tcp_rx_packets, &(c->tcp_list[i]), lcore_id);
+        i++;
+    }
     return c;
 }
