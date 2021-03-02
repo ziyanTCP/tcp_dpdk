@@ -375,15 +375,15 @@ cli_process(char *in, char *out, size_t out_size, int fd_client) {
 
     if (strcmp(tokens[0], "connect") == 0) {
         snprintf(out, out_size, "connect!\n");
+        struct quad q;
         int i = 0;
         unsigned int lcore_id;
         rte_be32_t dip = rte_cpu_to_be_32(string_to_ip(tokens[1]));
-        rte_be32_t dport = rte_cpu_to_be_16(3000); //
+        rte_be32_t dport = rte_cpu_to_be_16(atoi(tokens[2]));
         rte_be32_t sport = rte_cpu_to_be_16(8000); // the port of this program
         active_connect(&(c->tcp_list[0]), dip, dport, sport);
         return;
     }
-
 
     snprintf(out, out_size, MSG_CMD_UNKNOWN, tokens[0]);
 }
